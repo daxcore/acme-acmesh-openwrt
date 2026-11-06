@@ -35,7 +35,7 @@ jobs:
           NO_SHFMT_CHECK: true
           INDEX: 1
           PRIVATE_KEY: ${{ secrets.SIGNKEY }}
-          V: sc
+          V: w
 
       - name: Extract public key from signing key
         if: env.HAS_SIGNKEY == 'true'
@@ -48,7 +48,11 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: acme-acmesh-${{ steps.get_version.outputs.pkg_version }}-openwrt-${{ matrix.release }}-${{ matrix.arch }}
-          path: bin/packages/**/acme-acmesh*.apk
+          path: |
+            bin/packages/**/action/acme-acmesh*.apk
+            bin/packages/**/action/packages.adb
+            bin/packages/**/action/index.json
+            openwrt-daxcore.pem
 
       - name: Deploy to GitHub Pages
         run: |
@@ -57,6 +61,7 @@ jobs:
           shopt -s globstar
           cp bin/packages/**/action/acme-acmesh*.apk $DEST/
           cp bin/packages/**/action/packages.adb $DEST/
+          cp bin/packages/**/action/index.json $DEST/
           cp openwrt-daxcore.pem deploy/
 
       - name: Push to Pages Branch
