@@ -1,6 +1,8 @@
 name: build
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: write
@@ -28,7 +30,7 @@ jobs:
           echo "pkg_version=$PKG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Build package for OpenWRT
-        uses: openwrt/gh-action-sdk@main
+        uses: daxcore/gh-action-sdk@main
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.release }}
           PACKAGES: acme-acmesh
@@ -79,23 +81,23 @@ jobs:
 
     steps:
       - name: Checkout gh-pages
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: gh-pages
           fetch-depth: 1
-    
+
       - name: Generate index.html
         shell: python
         run: |
           from pathlib import Path
           from html import escape
           import re
-    
+
           ROOT = Path(".")
           RELEASES = ROOT / "releases"
           INDEX = ROOT / "index.html"
           PEM_FILE = ROOT / "openwrt-daxcore.pem"
-    
+
           def version_key(version):
               """
               Sortiert OpenWrt-Versionen numerisch absteigend.
@@ -104,21 +106,21 @@ jobs:
               """
               parts = re.findall(r"\d+", version)
               return tuple(int(x) for x in parts)
-    
+
           releases = []
-    
+
           if RELEASES.exists():
               for release_dir in RELEASES.iterdir():
                   if not release_dir.is_dir():
                       continue
-    
+
                   release = release_dir.name
                   targets = []
-    
+
                   for target_dir in release_dir.iterdir():
                       if not target_dir.is_dir():
                           continue
-    
+
                       files = sorted(
                           [
                               f for f in target_dir.iterdir()
@@ -126,32 +128,32 @@ jobs:
                           ],
                           key=lambda f: f.name.lower()
                       )
-    
+
                       if files:
                           targets.append((target_dir.name, files))
-    
+
                   if targets:
                       releases.append((release, targets))
-    
+
           releases.sort(
               key=lambda x: version_key(x[0]),
               reverse=True
           )
-    
+
           latest_release = releases[0][0] if releases else None
-    
+
           html = """<!DOCTYPE html>
           <html lang="de">
           <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
               <title>OpenWrt Feed</title>
-    
+
               <style>
                   :root {
                       color-scheme: light dark;
-
+                  
                       --bg: #f5f5f5;
                       --fg: #222;
                       --card: #ffffff;
@@ -160,7 +162,7 @@ jobs:
                       --link: #0069d9;
                       --border: #ccc;
                   }
-
+                  
                   @media (prefers-color-scheme: dark) {
                       :root {
                           --bg: #111;
@@ -181,15 +183,15 @@ jobs:
                       background: var(--bg);
                       color: var(--fg);
                   }
-
+                  
                   h1 { margin-bottom: 5px; }
-
+                  
                   .subtitle {
                       color: var(--muted);
                       margin-top: 0;
                       margin-bottom: 30px;
                   }
-
+                  
                   .release {
                       background: var(--card);
                       border-radius: 10px;
@@ -197,16 +199,16 @@ jobs:
                       margin-bottom: 20px;
                       box-shadow: 0 2px 8px rgba(0,0,0,.08);
                   }
-
+                  
                   .release.latest { border-left: 5px solid #2e7d32; }
-
+                  
                   .release-header {
                       display: flex;
                       align-items: center;
                       gap: 10px;
                       flex-wrap: wrap;
                   }
-
+                  
                   .badge {
                       display: inline-block;
                       padding: 3px 8px;
@@ -216,13 +218,13 @@ jobs:
                       font-size: 12px;
                       font-weight: 600;
                   }
-
+                  
                   .target { margin-top: 20px; }
                   .target h3 { margin-bottom: 8px; }
-
+                  
                   ul { margin-top: 5px; padding-left: 25px; }
                   li { margin: 6px 0; }
-
+                  
                   a { color: var(--link); text-decoration: none; }
                   a:hover { text-decoration: underline; }
                   
@@ -231,7 +233,7 @@ jobs:
                       padding: 2px 5px;
                       border-radius: 4px;
                   }
-
+                  
                   pre {
                       background: var(--code-bg);
                       padding: 15px;
@@ -242,10 +244,10 @@ jobs:
                       font-size: 13px;
                       line-height: 1.5;
                   }
-
+                  
                   .key-section { margin-bottom: 30px; }
                   .key-section h2 { margin-top: 0; }
-
+                  
                   footer {
                       margin-top: 40px;
                       padding-top: 20px;
@@ -260,11 +262,11 @@ jobs:
                   }
               </style>
           </head>
-    
+
           <body>
-    
+
           <h1>OpenWrt Feed</h1>
-    
+
           <p class="subtitle">
               Automatisch generierter Paket-Feed
           </p>
@@ -295,43 +297,42 @@ jobs:
           html += """</code></pre>
           </div>
           """
-    
+
           if not releases:
               html += """
           <div class="release">
               <p>Keine Releases gefunden.</p>
           </div>
           """
-    
+
           for release, targets in releases:
               latest_class = " latest" if release == latest_release else ""
-    
+
               html += f"""
           <div class="release{latest_class}">
               <div class="release-header">
                   <h2>OpenWrt {escape(release)}</h2>
           """
-    
+
               if release == latest_release:
                   html += '<span class="badge">Latest</span>'
-    
+
               html += """
               </div>
           """
-    
+
               for target, files in targets:
                   html += f"""
               <div class="target">
                   <h3>{escape(target)}</h3>
                   <ul>
           """
-    
+
                   for file in files:
                       relative_path = file.as_posix()
-    
-                      # Pfad ausgehend von /releases/
+
                       url = "/acme-acmesh-openwrt/" + relative_path
-    
+
                       html += f"""
                       <li>
                           <a href="{escape(url)}">
@@ -339,44 +340,44 @@ jobs:
                           </a>
                       </li>
           """
-    
+
                   html += """
                   </ul>
               </div>
           """
-    
+
               html += """
           </div>
           """
-    
+
           html += """
           <footer>
               Automatically generated by GitHub Actions.
           </footer>
-    
+
           </body>
           </html>
           """
-    
+
           INDEX.write_text(
               html,
               encoding="utf-8"
           )
-    
+
           print(f"Generated {INDEX}")
           print(f"Releases found: {len(releases)}")
-    
+
       - name: Commit generated index
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-    
+
           git add index.html
-    
+
           if git diff --cached --quiet; then
             echo "No changes to index.html"
             exit 0
           fi
-    
+
           git commit -m "chore: update generated feed index"
           git push origin gh-pages
