@@ -2,7 +2,7 @@
   "version": 2,
   "architecture": "aarch64_cortex-a53",
   "packages": {
-    "acme-acmesh": "3.1.4-r1",
-    "acme-acmesh-dnsapi": "3.1.4-r1"
+    "acme-acmesh": "3.1.6-r1",
+    "acme-acmesh-dnsapi": "3.1.6-r1"
   }
 }
