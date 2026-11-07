@@ -178,6 +178,9 @@ get)
 			set -- "$@" --dnssleep "$dns_wait"
 		fi
 		;;
+	"dns-persist")
+		set -- "$@" --dns-persist
+		;;
 	"standalone")
 		add_nft_rule "$main_domain" "$listen_port"
 		set -- "$@" --standalone --listen-v6 --httpport "$listen_port"
